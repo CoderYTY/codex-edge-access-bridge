@@ -30,7 +30,7 @@ Use them together:
 - `extension/`: Microsoft Edge / Chromium Manifest V3 extension.
 - `bridge/native-host.js`: Native Messaging host that exposes the local HTTP API.
 - `bridge/edge-client.js`: CLI used by Codex or a terminal.
-- `bridge/server.js`: optional HTTP bridge for manual fallback workflows.
+- `bridge/server.js`: optional HTTP bridge for manual workflows.
 - `native/NativeHostLauncher.cs`: Windows launcher source for the native host.
 - `scripts/install-native-host.ps1`: registers the Edge Native Messaging host.
 - `scripts/uninstall-native-host.ps1`: removes the Native Messaging registration.

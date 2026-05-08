@@ -1,131 +1,139 @@
 # Codex Edge Access Bridge
 
-这是一个给 Microsoft Edge 用的本地访问插件：Edge 扩展通过 Native Messaging 自动拉起本机 host，Codex 或命令行再通过 `http://127.0.0.1:18888` 访问 Edge 标签页。
+Codex Edge Access Bridge lets Codex inspect and operate Microsoft Edge tabs through a local browser extension and Native Messaging host.
 
-我没有找到 OpenAI 官方公开发布的 “Codex Chrome 插件”源码，所以这里参考的是浏览器原生消息 + 本机代理的实现方式。所有读取和操作都发生在你的本机。
+It is designed for local agent workflows where the browser stays under the user's control while Codex can read page content, list tabs, click elements, type into fields, navigate pages, and capture screenshots when asked.
 
-## 搭配使用
+## Companion Skill
 
-这个仓库提供真正运行在 Edge 里的扩展、本机 Native Messaging host 和命令行桥接工具。要让 Codex 在以后听到“操控 Edge 浏览器”之类的请求时自动知道该怎么调用它，建议同时安装配套 skill：
+This repository provides the Edge extension, Native Messaging host, and command-line bridge. For the best Codex experience, install the companion skill as well:
 
-- 配套 skill 仓库：[CoderYTY/edge-browser-control-skill](https://github.com/CoderYTY/edge-browser-control-skill)
+- Companion skill: [CoderYTY/edge-browser-control-skill](https://github.com/CoderYTY/edge-browser-control-skill)
 
-简单说：本仓库负责“能访问 Edge”，skill 仓库负责“让 Codex 记得怎么访问 Edge”。
+Use them together:
 
-## 目录
+- This repository makes Edge accessible from the local machine.
+- The skill teaches Codex when and how to call the local Edge bridge.
 
-- `extension/`：Edge / Chromium Manifest V3 扩展。
-- `bridge/native-host.js`：由 Edge 自动拉起的 Native Messaging host，内部提供本机 HTTP API。
-- `bridge/edge-client.js`：给 Codex 或终端调用的命令行工具。
-- `bridge/server.js`：旧版手动桥接服务，作为备用方案保留。
-- `native/NativeHostLauncher.cs`：Windows launcher 源码。
-- `scripts/install-native-host.ps1`：注册 Edge Native Messaging host。
-- `scripts/uninstall-native-host.ps1`：卸载注册项。
+## Features
 
-## 安装 Native Host
+- List open Edge tabs with titles and URLs.
+- Read visible page text, selected text, headings, links, and HTML.
+- Query page elements by CSS selector.
+- Click, type, scroll, reload, navigate, open tabs, and close tabs.
+- Capture the visible area of a tab as a PNG screenshot.
+- Start the local bridge through Edge Native Messaging.
+- Keep all browser automation on `127.0.0.1`.
 
-先确认 Edge 扩展 ID。你当前加载出来的 ID 是：
+## Project Layout
 
-```text
-hoknjjaaoakpcokjenclbkbemconlmnn
-```
+- `extension/`: Microsoft Edge / Chromium Manifest V3 extension.
+- `bridge/native-host.js`: Native Messaging host that exposes the local HTTP API.
+- `bridge/edge-client.js`: CLI used by Codex or a terminal.
+- `bridge/server.js`: optional HTTP bridge for manual fallback workflows.
+- `native/NativeHostLauncher.cs`: Windows launcher source for the native host.
+- `scripts/install-native-host.ps1`: registers the Edge Native Messaging host.
+- `scripts/uninstall-native-host.ps1`: removes the Native Messaging registration.
 
-注册 Native Host：
+## Requirements
 
-```powershell
-cd E:\Learn\Edge浏览器插件
-npm.cmd run native:install
-```
+- Windows
+- Microsoft Edge
+- Node.js 18 or newer
+- PowerShell
+- .NET Framework compiler available through Windows `csc.exe`
 
-如果你的扩展 ID 变了，就手动传入：
+## Installation
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-native-host.ps1 -ExtensionId "<你的扩展ID>"
-```
-
-注册脚本会做三件事：
-
-1. 编译 `native/edge-codex-native-host.exe`。
-2. 生成 `native/com.codex.edge_bridge.json`。
-3. 写入 `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.codex.edge_bridge`。
-
-## 加载扩展
-
-1. 打开：
-
-   ```text
-   edge://extensions
-   ```
-
-2. 开启“开发人员模式”。
-3. 点击“加载解压缩的扩展”，选择本项目里的 `extension` 目录。
-4. 如果已经加载过，点击扩展卡片上的“重新加载”。
-5. 点击工具栏扩展图标，打开 `Codex Edge Bridge` 控制台页。
-
-控制台页显示 `connected` 后，本机 host 已由 Edge 自动启动。现在不需要手动运行 `npm run bridge`。
-
-## 使用
+Clone the repository:
 
 ```powershell
-npm.cmd run edge -- status
-npm.cmd run edge -- tabs
-npm.cmd run edge -- active
-npm.cmd run edge -- read
-npm.cmd run edge -- navigate https://example.com
-npm.cmd run edge -- click "a"
-npm.cmd run edge -- type "input[name=q]" "hello from Codex"
-npm.cmd run edge -- screenshot .\edge-shot.png
+git clone https://github.com/CoderYTY/codex-edge-access-bridge.git
+cd codex-edge-access-bridge
 ```
 
-也可以直接调用：
+Load the extension in Edge:
+
+1. Open `edge://extensions`.
+2. Enable Developer mode.
+3. Select Load unpacked.
+4. Choose the `extension` directory from this repository.
+5. Copy the generated extension ID from Edge.
+
+Register the Native Messaging host with that extension ID:
 
 ```powershell
-node .\bridge\edge-client.js read --tab 123
-node .\bridge\edge-client.js html --max 50000
-node .\bridge\edge-client.js query "button, a"
-node .\bridge\edge-client.js eval "return { title: document.title, links: [...document.links].length }"
+powershell -ExecutionPolicy Bypass -File .\scripts\install-native-host.ps1 -ExtensionId "<your-extension-id>"
 ```
 
-## 可用命令
+Reload the extension in `edge://extensions`, then open the extension dashboard. The dashboard should show `connected`.
 
-- `status`：查看桥接服务和扩展连接状态。
-- `tabs`：列出 Edge 标签页。
-- `active`：获取当前活动标签页。
-- `read [--tab <id>] [--max <chars>]`：读取页面标题、URL、选中文本、正文和部分链接。
-- `html [--tab <id>] [--max <chars>]`：读取页面 HTML。
-- `query <selector> [--tab <id>]`：查询页面元素摘要。
-- `click <selector> [--tab <id>]`：点击元素。
-- `type <selector> <text> [--tab <id>] [--submit]`：输入文本，可选择提交表单。
-- `scroll <x> <y> [--tab <id>]`：滚动页面。
-- `wait <selector> [--timeout <ms>] [--tab <id>]`：等待元素出现。
-- `navigate <url> [--tab <id>]`：导航当前标签页或指定标签页。
-- `screenshot <path> [--tab <id>]`：保存当前可见区域截图。
-- `reload [--tab <id>]`：刷新标签页。
-- `newtab <url>`：新建标签页。
-- `close --tab <id>`：关闭指定标签页。
-- `eval <javascript> [--tab <id>]`：在页面上下文执行 JavaScript。
+## CLI Usage
 
-## 卸载
+Check the bridge:
+
+```powershell
+node .\bridge\edge-client.js status
+```
+
+List tabs:
+
+```powershell
+node .\bridge\edge-client.js tabs
+```
+
+Read a page:
+
+```powershell
+node .\bridge\edge-client.js read --tab <tabId> --max 30000
+```
+
+Query and interact with elements:
+
+```powershell
+node .\bridge\edge-client.js query "button, a, input" --tab <tabId>
+node .\bridge\edge-client.js click "button[type=submit]" --tab <tabId>
+node .\bridge\edge-client.js type "input[name=q]" "hello from Codex" --tab <tabId>
+```
+
+Navigate and capture:
+
+```powershell
+node .\bridge\edge-client.js navigate https://example.com --tab <tabId>
+node .\bridge\edge-client.js screenshot .\edge-shot.png --tab <tabId>
+```
+
+## Commands
+
+- `status`: show bridge and extension connection status.
+- `tabs`: list Edge tabs.
+- `active`: show the active tab.
+- `read`: read page title, URL, selected text, visible text, headings, and links.
+- `html`: read page HTML.
+- `query`: summarize matching DOM elements.
+- `click`: click an element.
+- `type`: type into an editable element.
+- `scroll`: scroll the page.
+- `wait`: wait for an element.
+- `navigate`: navigate a tab to a URL.
+- `screenshot`: save a PNG screenshot.
+- `reload`: reload a tab.
+- `newtab`: open a new tab.
+- `close`: close a tab.
+- `eval`: run JavaScript in the page context.
+
+## Privacy Model
+
+The bridge runs locally and listens on `127.0.0.1`. Browser actions happen through the loaded Edge extension and the Native Messaging host registered for that extension.
+
+The extension is intended for user-directed automation: inspect the requested tabs, operate the requested pages, and leave account verification, payment confirmation, CAPTCHA, and other sensitive checkpoints under direct user control.
+
+## Uninstall
+
+Remove the Native Messaging registration:
 
 ```powershell
 npm.cmd run native:uninstall
 ```
 
-这只删除 Edge Native Messaging 注册项，不会删除项目文件。
-
-## 备用手动模式
-
-如果 Native Messaging 暂时不可用，还可以手动启动旧桥接服务：
-
-```powershell
-npm.cmd run bridge
-```
-
-旧模式需要控制台页用 HTTP 轮询；当前扩展默认使用 Native Messaging。
-
-## 限制
-
-- Edge 内部页面，例如 `edge://extensions`，浏览器不允许普通扩展注入脚本。
-- 某些商店、银行或高安全页面可能限制内容脚本或页面操作。
-- `screenshot` 只能截取当前窗口可见区域；如果指定了非活动标签页，扩展会先激活它再截图。
-- 为了让本机 host 保持运行，需要保持 `Codex Edge Bridge` 控制台页打开。
+Then remove the unpacked extension from `edge://extensions`.

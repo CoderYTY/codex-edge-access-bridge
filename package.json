@@ -1,0 +1,17 @@
+{
+  "name": "edge-codex-access",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local bridge and Microsoft Edge extension that lets Codex inspect and operate Edge tabs.",
+  "type": "commonjs",
+  "scripts": {
+    "bridge": "node bridge/server.js",
+    "native:install": "powershell -ExecutionPolicy Bypass -File scripts/install-native-host.ps1",
+    "native:uninstall": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-native-host.ps1",
+    "edge": "node bridge/edge-client.js",
+    "check": "node --check bridge/server.js && node --check bridge/native-host.js && node --check bridge/edge-client.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Codex Edge Bridge</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Codex Edge Bridge</h1>
+          <p>保持此页打开，本机 Codex 即可访问 Edge 标签页。</p>
+        </div>
+        <div class="status" id="statusBadge">starting</div>
+      </header>
+
+      <section class="panel">
+        <div class="field-grid">
+          <label>
+            <span>CLI URL</span>
+            <input id="serverUrl" spellcheck="false" placeholder="http://127.0.0.1:18888">
+          </label>
+          <label>
+            <span>Native Host</span>
+            <input id="hostName" spellcheck="false" placeholder="com.codex.edge_bridge">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="saveButton" type="button">保存</button>
+          <button id="startButton" type="button">连接</button>
+          <button id="stopButton" type="button">断开</button>
+        </div>
+      </section>
+
+      <section class="panel metrics">
+        <div>
+          <span>Client</span>
+          <strong id="clientId">-</strong>
+        </div>
+        <div>
+          <span>Last Seen</span>
+          <strong id="lastSeen">-</strong>
+        </div>
+        <div>
+          <span>Last Command</span>
+          <strong id="lastCommand">-</strong>
+        </div>
+      </section>
+
+      <section class="panel log-panel">
+        <div class="section-title">日志</div>
+        <pre id="log"></pre>
+      </section>
+    </main>
+
+    <script src="executor.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

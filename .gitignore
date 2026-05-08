@@ -1,0 +1,8 @@
+node_modules/
+*.log
+*.tmp
+edge-shot*.png
+native/*.exe
+native/*.json
+native/node-path.txt
+native/native-host.log

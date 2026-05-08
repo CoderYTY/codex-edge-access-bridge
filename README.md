@@ -4,6 +4,14 @@
 
 我没有找到 OpenAI 官方公开发布的 “Codex Chrome 插件”源码，所以这里参考的是浏览器原生消息 + 本机代理的实现方式。所有读取和操作都发生在你的本机。
 
+## 搭配使用
+
+这个仓库提供真正运行在 Edge 里的扩展、本机 Native Messaging host 和命令行桥接工具。要让 Codex 在以后听到“操控 Edge 浏览器”之类的请求时自动知道该怎么调用它，建议同时安装配套 skill：
+
+- 配套 skill 仓库：[CoderYTY/edge-browser-control-skill](https://github.com/CoderYTY/edge-browser-control-skill)
+
+简单说：本仓库负责“能访问 Edge”，skill 仓库负责“让 Codex 记得怎么访问 Edge”。
+
 ## 目录
 
 - `extension/`：Edge / Chromium Manifest V3 扩展。

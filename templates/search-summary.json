@@ -1,0 +1,58 @@
+{
+  "name": "search-summary",
+  "title": "搜索并整理结果",
+  "description": "在当前站点或搜索页执行搜索，抽取结构化结果列表，适合让 AI 先看候选项。",
+  "timeoutMs": 90000,
+  "inputs": {
+    "query": {
+      "label": "搜索词",
+      "required": true
+    },
+    "target": {
+      "label": "搜索框描述",
+      "default": "搜索框"
+    },
+    "limit": {
+      "label": "结果数量",
+      "default": 8
+    },
+    "waitMs": {
+      "label": "等待时间",
+      "default": 12000
+    }
+  },
+  "steps": [
+    {
+      "name": "searchExtract",
+      "label": "搜索并抽取结果",
+      "saveAs": "search",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "target": "{{inputs.target}}",
+        "searchText": "{{inputs.query}}",
+        "limit": "{{inputs.limit}}",
+        "waitMs": "{{inputs.waitMs}}",
+        "mode": "search"
+      }
+    },
+    {
+      "name": "assert",
+      "label": "确认存在搜索结果",
+      "saveAs": "resultCheck",
+      "args": {
+        "value": "{{vars.search.extraction.results.length}}",
+        "gte": 1
+      }
+    }
+  ],
+  "output": {
+    "query": "{{inputs.query}}",
+    "count": "{{vars.search.extraction.results.length}}",
+    "title": "{{vars.search.extraction.title}}",
+    "url": "{{vars.search.extraction.url}}",
+    "results": "{{vars.search.extraction.results}}"
+  }
+}

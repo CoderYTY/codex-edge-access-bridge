@@ -3,58 +3,189 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Codex Edge Bridge</title>
+    <title>Codex Edge 控制台</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="shell">
-      <header class="topbar">
+      <header class="hero">
         <div>
-          <h1>Codex Edge Bridge</h1>
-          <p>保持此页打开，本机 Codex 即可访问 Edge 标签页。</p>
+          <p class="eyebrow">本机浏览器桥接</p>
+          <h1>Codex Edge 控制台</h1>
+          <p class="hero-copy">保持此页打开，Codex 就能在你的授权范围内读取和操作 Edge 标签页。</p>
         </div>
-        <div class="status" id="statusBadge">starting</div>
+        <div class="status-card">
+          <span class="status-label">连接状态</span>
+          <strong class="status" id="statusBadge">启动中</strong>
+        </div>
       </header>
 
-      <section class="panel">
-        <div class="field-grid">
-          <label>
-            <span>CLI URL</span>
-            <input id="serverUrl" spellcheck="false" placeholder="http://127.0.0.1:18888">
-          </label>
-          <label>
-            <span>Native Host</span>
-            <input id="hostName" spellcheck="false" placeholder="com.codex.edge_bridge">
-          </label>
+      <section class="overview-grid" aria-label="运行状态">
+        <div class="metric">
+          <span>客户端</span>
+          <strong id="clientId">-</strong>
         </div>
-
-        <div class="actions">
-          <button id="saveButton" type="button">保存</button>
-          <button id="startButton" type="button">连接</button>
-          <button id="stopButton" type="button">断开</button>
+        <div class="metric">
+          <span>最近心跳</span>
+          <strong id="lastSeen">-</strong>
+        </div>
+        <div class="metric">
+          <span>最近命令</span>
+          <strong id="lastCommand">-</strong>
+        </div>
+        <div class="metric">
+          <span>桥接地址</span>
+          <strong id="bridgeUrl">-</strong>
         </div>
       </section>
 
-      <section class="panel metrics">
-        <div>
-          <span>Client</span>
-          <strong id="clientId">-</strong>
+      <section class="main-grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>连接配置</h2>
+                <p>Native Host 会在本机启动桥接服务，Codex 通过 CLI 地址发送命令。</p>
+              </div>
+            </div>
+
+            <div class="field-list">
+              <label class="field">
+                <span>CLI 地址</span>
+                <div class="input-row">
+                  <input id="serverUrl" spellcheck="false" placeholder="http://127.0.0.1:18888">
+                  <button class="icon-button" id="copyServerButton" type="button" aria-label="复制 CLI 地址" title="复制 CLI 地址">复制</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Native Host 名称</span>
+                <div class="input-row">
+                  <input id="hostName" spellcheck="false" placeholder="com.codex.edge_bridge">
+                  <button class="icon-button" id="copyHostButton" type="button" aria-label="复制 Native Host 名称" title="复制 Native Host 名称">复制</button>
+                </div>
+              </label>
+            </div>
+
+            <div class="actions">
+              <button class="primary-button" id="saveButton" type="button">保存配置</button>
+              <button id="startButton" type="button">重新连接</button>
+              <button id="stopButton" type="button">断开连接</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>快速操作</h2>
+                <p>常用信息可以直接复制，用于终端调试或重新注册 Native Host。</p>
+              </div>
+            </div>
+
+            <div class="quick-grid">
+              <button id="copyStatusButton" type="button">
+                <span>复制状态摘要</span>
+                <small>连接、客户端和最近命令</small>
+              </button>
+              <button id="copyInstallButton" type="button">
+                <span>复制注册命令</span>
+                <small>使用当前 Native Host 名称</small>
+              </button>
+              <button id="clearLogButton" type="button">
+                <span>清空日志</span>
+                <small>只清空此控制台显示</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="panel diagnostics-panel">
+            <div class="panel-heading diagnostics-heading">
+              <div>
+                <h2>诊断中心</h2>
+                <p>一键检查扩展、Native Host、CLI 健康接口、标签页、页面读取和截图能力。</p>
+              </div>
+              <div class="diagnostics-actions">
+                <button class="primary-button" id="runDiagnosticsButton" type="button">开始自检</button>
+                <button id="copyDiagnosticsButton" type="button">复制报告</button>
+              </div>
+            </div>
+
+            <div class="diagnostics-summary" id="diagnosticsSummary">
+              <strong>尚未运行自检</strong>
+              <span>点击“开始自检”后，这里会展示整体结果。</span>
+            </div>
+
+            <div class="diagnostics-list" id="diagnosticsList" aria-live="polite">
+              <div class="diagnostic-item" data-state="pending">
+                <span></span>
+                <div>
+                  <strong>等待自检</strong>
+                  <small>自检结果会按步骤显示在这里。</small>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-        <div>
-          <span>Last Seen</span>
-          <strong id="lastSeen">-</strong>
-        </div>
-        <div>
-          <span>Last Command</span>
-          <strong id="lastCommand">-</strong>
-        </div>
+
+        <aside class="panel checklist-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>连接检查</h2>
+              <p>这里展示当前会话最关键的几个状态点。</p>
+            </div>
+          </div>
+
+          <ol class="checklist">
+            <li id="checkExtension" data-state="pending">
+              <span></span>
+              <div>
+                <strong>扩展页面已加载</strong>
+                <small>控制台脚本正在运行</small>
+              </div>
+            </li>
+            <li id="checkClient" data-state="pending">
+              <span></span>
+              <div>
+                <strong>客户端身份已生成</strong>
+                <small>用于区分本次 Edge 会话</small>
+              </div>
+            </li>
+            <li id="checkNative" data-state="pending">
+              <span></span>
+              <div>
+                <strong>Native Host 已连接</strong>
+                <small>Edge 已经拉起本机桥接进程</small>
+              </div>
+            </li>
+            <li id="checkBridge" data-state="pending">
+              <span></span>
+              <div>
+                <strong>CLI 地址已就绪</strong>
+                <small>Codex 可以通过本机地址发送命令</small>
+              </div>
+            </li>
+          </ol>
+        </aside>
       </section>
 
       <section class="panel log-panel">
-        <div class="section-title">日志</div>
-        <pre id="log"></pre>
+        <div class="panel-heading log-heading">
+          <div>
+            <h2>运行日志</h2>
+            <p>展示连接、命令和错误事件，方便定位当前桥接状态。</p>
+          </div>
+          <div class="filters" role="group" aria-label="日志筛选">
+            <button class="filter-button active" type="button" data-filter="all">全部</button>
+            <button class="filter-button" type="button" data-filter="info">信息</button>
+            <button class="filter-button" type="button" data-filter="success">成功</button>
+            <button class="filter-button" type="button" data-filter="warn">提醒</button>
+            <button class="filter-button" type="button" data-filter="error">错误</button>
+          </div>
+        </div>
+        <div class="log-list" id="log" aria-live="polite"></div>
       </section>
     </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <script src="executor.js"></script>
     <script src="dashboard.js"></script>

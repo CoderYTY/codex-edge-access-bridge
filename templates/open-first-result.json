@@ -1,0 +1,86 @@
+{
+  "name": "open-first-result",
+  "title": "搜索并打开第一个结果",
+  "description": "搜索关键词，打开第一个搜索结果，再抽取打开页面的正文信息。",
+  "timeoutMs": 100000,
+  "inputs": {
+    "query": {
+      "label": "搜索词",
+      "required": true
+    },
+    "target": {
+      "label": "搜索框描述",
+      "default": "搜索框"
+    },
+    "limit": {
+      "label": "结果数量",
+      "default": 5
+    },
+    "waitMs": {
+      "label": "等待时间",
+      "default": 12000
+    },
+    "maxChars": {
+      "label": "打开页正文上限",
+      "default": 3500
+    }
+  },
+  "steps": [
+    {
+      "name": "searchExtract",
+      "label": "搜索并抽取结果",
+      "saveAs": "search",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "target": "{{inputs.target}}",
+        "searchText": "{{inputs.query}}",
+        "limit": "{{inputs.limit}}",
+        "waitMs": "{{inputs.waitMs}}",
+        "mode": "search"
+      }
+    },
+    {
+      "name": "assert",
+      "label": "确认至少有一个搜索结果",
+      "saveAs": "resultCheck",
+      "args": {
+        "value": "{{vars.search.extraction.results.length}}",
+        "gte": 1
+      }
+    },
+    {
+      "name": "act",
+      "label": "打开第一个结果",
+      "saveAs": "openedTab",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "id": "{{vars.search.extraction.results.0.actionId}}",
+        "wait": true,
+        "followNewTab": true,
+        "waitMs": "{{inputs.waitMs}}"
+      }
+    },
+    {
+      "name": "extract",
+      "label": "抽取打开后的页面",
+      "saveAs": "openedPage",
+      "args": {
+        "mode": "article",
+        "maxChars": "{{inputs.maxChars}}"
+      }
+    }
+  ],
+  "output": {
+    "query": "{{inputs.query}}",
+    "openedTitle": "{{vars.openedPage.article.title}}",
+    "openedAuthor": "{{vars.openedPage.article.author}}",
+    "openedUrl": "{{vars.openedPage.url}}",
+    "openedText": "{{vars.openedPage.article.text.value}}"
+  }
+}

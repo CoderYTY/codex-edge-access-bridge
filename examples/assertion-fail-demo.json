@@ -1,0 +1,31 @@
+{
+  "name": "assertion-fail-demo",
+  "steps": [
+    {
+      "name": "assert",
+      "label": "演示断言失败会停止任务链",
+      "saveAs": "check",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 300
+      },
+      "args": {
+        "value": 1,
+        "gte": 2
+      }
+    },
+    {
+      "name": "extract",
+      "label": "该步骤默认不会执行",
+      "args": {
+        "mode": "auto",
+        "maxChars": 500
+      }
+    }
+  ],
+  "output": {
+    "asserted": "{{vars.check.asserted}}",
+    "failedCount": "{{vars.check.failedCount}}",
+    "message": "{{vars.check.message}}"
+  }
+}

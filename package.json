@@ -9,7 +9,7 @@
     "native:install": "powershell -ExecutionPolicy Bypass -File scripts/install-native-host.ps1",
     "native:uninstall": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-native-host.ps1",
     "edge": "node bridge/edge-client.js",
-    "check": "node --check bridge/server.js && node --check bridge/native-host.js && node --check bridge/edge-client.js"
+    "check": "node --check bridge/server.js && node --check bridge/native-host.js && node --check bridge/edge-client.js && node --check extension/background.js && node --check extension/content.js && node --check extension/dashboard.js && node --check extension/executor.js"
   },
   "engines": {
     "node": ">=18"

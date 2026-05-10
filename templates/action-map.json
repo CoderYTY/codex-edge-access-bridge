@@ -1,0 +1,33 @@
+{
+  "name": "action-map",
+  "title": "扫描当前页面可操作项",
+  "description": "生成当前页面的 AI 快照和动作编号，适合点击、填写、跳转前做定位。",
+  "inputs": {
+    "maxChars": {
+      "label": "文本上限",
+      "default": 2500
+    },
+    "elements": {
+      "label": "控件数量",
+      "default": 60
+    }
+  },
+  "steps": [
+    {
+      "name": "snapshot",
+      "label": "生成页面动作地图",
+      "saveAs": "snapshot",
+      "args": {
+        "maxChars": "{{inputs.maxChars}}",
+        "maxElements": "{{inputs.elements}}"
+      }
+    }
+  ],
+  "output": {
+    "title": "{{vars.snapshot.title}}",
+    "url": "{{vars.snapshot.url}}",
+    "snapshotId": "{{vars.snapshot.snapshotId}}",
+    "actionCount": "{{vars.snapshot.actions.length}}",
+    "actions": "{{vars.snapshot.actions}}"
+  }
+}

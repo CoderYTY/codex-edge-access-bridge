@@ -1,0 +1,65 @@
+{
+  "name": "search-extract-open-second",
+  "steps": [
+    {
+      "name": "searchExtract",
+      "label": "搜索并抽取结果",
+      "saveAs": "search",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "searchText": "Codex Edge Bridge",
+        "limit": 5,
+        "maxChars": 1200,
+        "waitMs": 12000
+      }
+    },
+    {
+      "name": "assert",
+      "label": "确认至少有两个搜索结果",
+      "saveAs": "resultCountCheck",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 800
+      },
+      "args": {
+        "value": "{{vars.search.extraction.results.length}}",
+        "gte": 2
+      }
+    },
+    {
+      "name": "act",
+      "label": "打开第二个结果",
+      "saveAs": "openedTab",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "id": "{{vars.search.extraction.results.1.actionId}}",
+        "wait": true,
+        "followNewTab": true,
+        "waitMs": 10000
+      }
+    },
+    {
+      "name": "extract",
+      "label": "抽取打开后的页面",
+      "saveAs": "openedPage",
+      "args": {
+        "mode": "article",
+        "maxChars": 2500
+      }
+    }
+  ],
+  "output": {
+    "query": "Codex Edge Bridge",
+    "resultCount": "{{vars.search.extraction.results.length}}",
+    "openedTitle": "{{vars.openedPage.article.title}}",
+    "openedAuthor": "{{vars.openedPage.article.author}}",
+    "openedUrl": "{{vars.openedPage.url}}",
+    "openedDescription": "{{vars.openedPage.article.description}}"
+  }
+}

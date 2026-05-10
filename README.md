@@ -1,123 +1,353 @@
 # Codex Edge Access Bridge
 
-这是一个给 Microsoft Edge 用的本地访问插件：Edge 扩展通过 Native Messaging 自动拉起本机 host，Codex 或命令行再通过 `http://127.0.0.1:18888` 访问 Edge 标签页。
+Codex Edge Access Bridge lets Codex inspect and operate Microsoft Edge tabs through a local browser extension and Native Messaging host.
 
-我没有找到 OpenAI 官方公开发布的 “Codex Chrome 插件”源码，所以这里参考的是浏览器原生消息 + 本机代理的实现方式。所有读取和操作都发生在你的本机。
+It is designed for local agent workflows where the browser stays under the user's control while Codex can read page content, list tabs, click elements, type into fields, navigate pages, and capture screenshots when asked.
 
-## 目录
+## Companion Skill
 
-- `extension/`：Edge / Chromium Manifest V3 扩展。
-- `bridge/native-host.js`：由 Edge 自动拉起的 Native Messaging host，内部提供本机 HTTP API。
-- `bridge/edge-client.js`：给 Codex 或终端调用的命令行工具。
-- `bridge/server.js`：旧版手动桥接服务，作为备用方案保留。
-- `native/NativeHostLauncher.cs`：Windows launcher 源码。
-- `scripts/install-native-host.ps1`：注册 Edge Native Messaging host。
-- `scripts/uninstall-native-host.ps1`：卸载注册项。
+This repository provides the Edge extension, Native Messaging host, and command-line bridge. For the best Codex experience, install the companion skill as well:
 
-## 安装 Native Host
+- Companion skill: [CoderYTY/edge-browser-control-skill](https://github.com/CoderYTY/edge-browser-control-skill)
 
-先确认 Edge 扩展 ID。你当前加载出来的 ID 是：
+Use them together:
 
-```text
-hoknjjaaoakpcokjenclbkbemconlmnn
-```
+- This repository makes Edge accessible from the local machine.
+- The skill teaches Codex when and how to call the local Edge bridge.
 
-注册 Native Host：
+## Features
 
-```powershell
-cd E:\Learn\Edge浏览器插件
-npm.cmd run native:install
-```
+- List open Edge tabs with titles and URLs.
+- Read visible page text, selected text, headings, links, and HTML.
+- Observe a page in one call, including text, headings, links, fields, buttons, and other visible controls.
+- Generate compact AI snapshots with stable action IDs for the current page state, then act by ID.
+- Extract structured page data such as article text, links, cards, and search results with matching action IDs.
+- Run auditable multi-step task chains with tab inheritance, waits, structured extraction, and template references between steps.
+- Run reusable task templates for common AI browsing workflows such as page briefing, search summarization, and result comparison.
+- Pick a reusable task template from a natural-language intent with `smart`.
+- Find the most likely action ID from a natural-language target such as "search box" or "history".
+- Review recent browser automation steps with a compact operation trace.
+- Query page elements by CSS selector.
+- Click by selector or visible text, fill fields by label, choose options, press keys, scroll, reload, navigate, open tabs, and close tabs.
+- Capture the visible area of a tab as a PNG screenshot.
+- Classify command risk and require explicit confirmation for high-risk actions.
+- Start the local bridge through Edge Native Messaging.
+- Keep all browser automation on `127.0.0.1`.
 
-如果你的扩展 ID 变了，就手动传入：
+## Project Layout
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-native-host.ps1 -ExtensionId "<你的扩展ID>"
-```
+- `extension/`: Microsoft Edge / Chromium Manifest V3 extension.
+- `bridge/native-host.js`: Native Messaging host that exposes the local HTTP API.
+- `bridge/edge-client.js`: CLI used by Codex or a terminal.
+- `bridge/server.js`: optional HTTP bridge for manual workflows.
+- `templates/`: reusable JSON task-chain templates for common AI browsing workflows.
+- `examples/`: task-chain examples and failure demos.
+- `native/NativeHostLauncher.cs`: Windows launcher source for the native host.
+- `scripts/install-native-host.ps1`: registers the Edge Native Messaging host.
+- `scripts/uninstall-native-host.ps1`: removes the Native Messaging registration.
 
-注册脚本会做三件事：
+## Requirements
 
-1. 编译 `native/edge-codex-native-host.exe`。
-2. 生成 `native/com.codex.edge_bridge.json`。
-3. 写入 `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.codex.edge_bridge`。
+- Windows
+- Microsoft Edge
+- Node.js 18 or newer
+- PowerShell
+- .NET Framework compiler available through Windows `csc.exe`
 
-## 加载扩展
+## Installation
 
-1. 打开：
-
-   ```text
-   edge://extensions
-   ```
-
-2. 开启“开发人员模式”。
-3. 点击“加载解压缩的扩展”，选择本项目里的 `extension` 目录。
-4. 如果已经加载过，点击扩展卡片上的“重新加载”。
-5. 点击工具栏扩展图标，打开 `Codex Edge Bridge` 控制台页。
-
-控制台页显示 `connected` 后，本机 host 已由 Edge 自动启动。现在不需要手动运行 `npm run bridge`。
-
-## 使用
-
-```powershell
-npm.cmd run edge -- status
-npm.cmd run edge -- tabs
-npm.cmd run edge -- active
-npm.cmd run edge -- read
-npm.cmd run edge -- navigate https://example.com
-npm.cmd run edge -- click "a"
-npm.cmd run edge -- type "input[name=q]" "hello from Codex"
-npm.cmd run edge -- screenshot .\edge-shot.png
-```
-
-也可以直接调用：
+Clone the repository:
 
 ```powershell
-node .\bridge\edge-client.js read --tab 123
-node .\bridge\edge-client.js html --max 50000
-node .\bridge\edge-client.js query "button, a"
-node .\bridge\edge-client.js eval "return { title: document.title, links: [...document.links].length }"
+git clone https://github.com/CoderYTY/codex-edge-access-bridge.git
+cd codex-edge-access-bridge
 ```
 
-## 可用命令
+Load the extension in Edge:
 
-- `status`：查看桥接服务和扩展连接状态。
-- `tabs`：列出 Edge 标签页。
-- `active`：获取当前活动标签页。
-- `read [--tab <id>] [--max <chars>]`：读取页面标题、URL、选中文本、正文和部分链接。
-- `html [--tab <id>] [--max <chars>]`：读取页面 HTML。
-- `query <selector> [--tab <id>]`：查询页面元素摘要。
-- `click <selector> [--tab <id>]`：点击元素。
-- `type <selector> <text> [--tab <id>] [--submit]`：输入文本，可选择提交表单。
-- `scroll <x> <y> [--tab <id>]`：滚动页面。
-- `wait <selector> [--timeout <ms>] [--tab <id>]`：等待元素出现。
-- `navigate <url> [--tab <id>]`：导航当前标签页或指定标签页。
-- `screenshot <path> [--tab <id>]`：保存当前可见区域截图。
-- `reload [--tab <id>]`：刷新标签页。
-- `newtab <url>`：新建标签页。
-- `close --tab <id>`：关闭指定标签页。
-- `eval <javascript> [--tab <id>]`：在页面上下文执行 JavaScript。
+1. Open `edge://extensions`.
+2. Enable Developer mode.
+3. Select Load unpacked.
+4. Choose the `extension` directory from this repository.
+5. Copy the generated extension ID from Edge.
 
-## 卸载
+Register the Native Messaging host with that extension ID:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-native-host.ps1 -ExtensionId "<your-extension-id>"
+```
+
+Reload the extension in `edge://extensions`, then open the extension dashboard. The dashboard should show `connected`.
+
+## CLI Usage
+
+For most agent workflows, start with these commands:
+
+```powershell
+node .\bridge\edge-client.js status
+node .\bridge\edge-client.js tabs
+node .\bridge\edge-client.js smart "总结当前页面" --tab <tabId>
+node .\bridge\edge-client.js smart "搜索并整理 Codex Edge Bridge" --tab <tabId> --timeout 90000
+node .\bridge\edge-client.js smart "搜索并打开第一个 Codex Edge Bridge 结果" --tab <tabId> --timeout 100000
+node .\bridge\edge-client.js smart "对比 Codex Edge Bridge 的前两个结果" --tab <tabId> --timeout 120000
+node .\bridge\edge-client.js smart "扫描当前页面可操作项" --tab <tabId>
+node .\bridge\edge-client.js trace --limit 10
+```
+
+Use `smart` for natural-language browser tasks. Use the lower-level commands below when an agent needs direct control.
+
+Check the bridge:
+
+```powershell
+node .\bridge\edge-client.js status
+```
+
+List tabs:
+
+```powershell
+node .\bridge\edge-client.js tabs
+```
+
+Review recent operations:
+
+```powershell
+node .\bridge\edge-client.js trace --limit 10
+node .\bridge\edge-client.js trace --clear
+```
+
+Run a multi-step browser task chain:
+
+```powershell
+node .\bridge\edge-client.js chain .\examples\search-extract-open-second.json --tab <tabId> --timeout 90000
+node .\bridge\edge-client.js chain .\examples\assertion-fail-demo.json --tab <tabId> --timeout 60000
+```
+
+List and run built-in task templates:
+
+```powershell
+node .\bridge\edge-client.js templates
+node .\bridge\edge-client.js templates search-summary
+node .\bridge\edge-client.js run-template page-brief --tab <tabId>
+node .\bridge\edge-client.js run-template search-summary "Codex Edge Bridge" --tab <tabId> --timeout 90000
+node .\bridge\edge-client.js run-template open-first-result --input query="Codex Edge Bridge" --tab <tabId> --timeout 100000
+```
+
+Let the CLI choose the template from an intent:
+
+```powershell
+node .\bridge\edge-client.js smart "总结当前页面" --tab <tabId>
+node .\bridge\edge-client.js smart "搜索并整理 Codex Edge Bridge" --tab <tabId> --timeout 90000
+node .\bridge\edge-client.js smart "搜索并打开第一个 Codex Edge Bridge 结果" --tab <tabId> --timeout 100000
+node .\bridge\edge-client.js smart "对比 Codex Edge Bridge 的前两个结果" --tab <tabId> --timeout 120000
+```
+
+Read a page:
+
+```powershell
+node .\bridge\edge-client.js read --tab <tabId> --max 30000
+```
+
+Observe a page for agent planning:
+
+```powershell
+node .\bridge\edge-client.js observe --tab <tabId> --max 5000 --elements 40
+node .\bridge\edge-client.js observe --tab <tabId> --screenshot .\observe.png
+```
+
+Use compact AI snapshots when an agent needs to plan and act with less context:
+
+```powershell
+node .\bridge\edge-client.js snapshot --tab <tabId> --max 3000 --elements 40
+node .\bridge\edge-client.js target "搜索框" --tab <tabId> --action fill
+node .\bridge\edge-client.js find "历史" --tab <tabId>
+node .\bridge\edge-client.js act b1 --tab <tabId>
+node .\bridge\edge-client.js act f1 "hello from Codex" --tab <tabId>
+node .\bridge\edge-client.js act b1 --tab <tabId> --wait
+node .\bridge\edge-client.js act b1 --tab <tabId> --wait-for "main"
+node .\bridge\edge-client.js act b2 --tab <tabId> --risk
+node .\bridge\edge-client.js act b2 --tab <tabId> --confirm
+```
+
+Use high-level semantic actions for common workflows:
+
+```powershell
+node .\bridge\edge-client.js open-target "历史" --tab <tabId> --wait
+node .\bridge\edge-client.js fill-target "搜索框" "Codex Edge Bridge" --tab <tabId>
+node .\bridge\edge-client.js search "Codex Edge Bridge" --tab <tabId> --wait-ms 12000
+```
+
+Extract structured data when an agent needs machine-readable page content:
+
+```powershell
+node .\bridge\edge-client.js extract --tab <tabId> --mode auto --limit 20
+node .\bridge\edge-client.js extract --tab <tabId> --mode links --limit 30
+node .\bridge\edge-client.js extract --tab <tabId> --mode search --limit 10
+node .\bridge\edge-client.js search-extract "Codex Edge Bridge" --tab <tabId> --limit 10 --wait-ms 12000
+```
+
+Task chains accept a JSON array or an object with a `steps` array. Each step has `name`, optional `label`, `saveAs`, and `args`. Later steps can reference earlier results and CLI inputs with templates:
+
+```json
+{
+  "steps": [
+    {
+      "name": "searchExtract",
+      "saveAs": "search",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "searchText": "{{inputs.query}}",
+        "limit": 5,
+        "waitMs": 12000
+      }
+    },
+    {
+      "name": "assert",
+      "args": {
+        "value": "{{vars.search.extraction.results.length}}",
+        "gte": 2
+      }
+    },
+    {
+      "name": "act",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "id": "{{vars.search.extraction.results.1.actionId}}",
+        "wait": true,
+        "followNewTab": true
+      }
+    },
+    {
+      "name": "extract",
+      "saveAs": "openedPage",
+      "args": {
+        "mode": "article",
+        "maxChars": 2500
+      }
+    }
+  ],
+  "inputs": {
+    "query": "Codex Edge Bridge"
+  },
+  "output": {
+    "query": "{{inputs.query}}",
+    "openedTitle": "{{vars.openedPage.article.title}}",
+    "openedAuthor": "{{vars.openedPage.article.author}}",
+    "openedUrl": "{{vars.openedPage.url}}"
+  }
+}
+```
+
+Use `assert` / `expect` as a standalone read-only check or as a chain step:
+
+```powershell
+node .\bridge\edge-client.js assert --tab <tabId> --title-contains "bilibili"
+node .\bridge\edge-client.js assert --tab <tabId> --text-contains "Codex" --max 60000
+```
+
+By default, `chain` passes the current result tab to the next step. Use `--no-inherit-tab` to disable this, or `--continue-on-error`, `--continue-on-blocked`, `--continue-on-unmatched`, and `--continue-on-assertion` to keep running after a non-OK step. Steps can retry transient failures with `retry: { "attempts": 3, "delayMs": 1000 }`. Use `--input key=value` or top-level `inputs` with `{{inputs.key}}` placeholders. Use top-level `output` to return a concise final object while keeping full per-step records available for trace/debugging.
+
+Query and interact with elements:
+
+```powershell
+node .\bridge\edge-client.js query "button, a, input" --tab <tabId>
+node .\bridge\edge-client.js click "button[type=submit]" --tab <tabId>
+node .\bridge\edge-client.js clicktext "登录" --tab <tabId>
+node .\bridge\edge-client.js type "input[name=q]" "hello from Codex" --tab <tabId>
+node .\bridge\edge-client.js fill "搜索" "hello from Codex" --tab <tabId> --submit
+node .\bridge\edge-client.js press Enter --tab <tabId>
+node .\bridge\edge-client.js select "城市" "上海" --tab <tabId>
+```
+
+Check risk before acting:
+
+```powershell
+node .\bridge\edge-client.js clicktext "删除" --tab <tabId> --risk
+node .\bridge\edge-client.js close --tab <tabId> --risk
+```
+
+Run a high-risk command only after explicit user confirmation:
+
+```powershell
+node .\bridge\edge-client.js close --tab <tabId> --confirm
+```
+
+Navigate and capture:
+
+```powershell
+node .\bridge\edge-client.js navigate https://example.com --tab <tabId>
+node .\bridge\edge-client.js screenshot .\edge-shot.png --tab <tabId>
+node .\bridge\edge-client.js activate --tab <tabId>
+```
+
+## Commands
+
+- `status`: show bridge and extension connection status.
+- `tabs`: list Edge tabs.
+- `active`: show the active tab.
+- `trace`: return recent command summaries, risks, waits, and compact results.
+- `chain`: run a JSON-defined sequence of browser commands and return per-step results.
+- `templates`: list built-in task-chain templates, or show one template summary by name.
+- `run-template` / `preset`: run a built-in task-chain template with `--input key=value` values.
+- `smart` / `auto` / `intent`: choose and run a built-in template from a natural-language intent.
+- `assert` / `expect`: check title, URL, page text, selector count, or a templated value.
+- `observe`: return page text, headings, links, visible controls, form fields, viewport data, and optional screenshot.
+- `snapshot`: return a compact page snapshot with numbered action IDs such as `l1`, `b1`, and `f1`.
+- `target` / `find`: locate the best action ID for a natural-language target and return ranked candidates.
+- `extract`: return structured article, links, cards, or search results with matching action IDs when possible.
+- `act`: execute a numbered action from the latest snapshot, with optional value, action override, and post-action wait.
+- `open-target`: locate a semantic target, click it, and optionally wait.
+- `fill-target`: locate a semantic field and fill it.
+- `search`: locate the page search box, fill the query, submit, and wait for results, including result pages opened in a new tab.
+- `search-extract`: run `search`, follow the result tab, then return structured search results.
+- `read`: read page title, URL, selected text, visible text, headings, and links.
+- `html`: read page HTML.
+- `query`: summarize matching DOM elements.
+- `click`: click an element.
+- `clicktext`: click a visible control by text, accessible label, placeholder, or similar page text.
+- `type`: type into an editable element.
+- `fill`: fill a field by label, placeholder, name, aria label, or selector.
+- `press`: dispatch a keyboard action to the focused element or selector.
+- `select`: choose an option in a `<select>` element by label/value text.
+- `scroll`: scroll the page.
+- `wait`: wait for an element.
+- `navigate`: navigate a tab to a URL.
+- `screenshot`: save a PNG screenshot.
+- `reload`: reload a tab.
+- `activate`: bring a tab to the front.
+- `newtab`: open a new tab.
+- `close`: close a tab.
+- `eval`: run JavaScript in the page context.
+
+## Safety Gates
+
+The bridge is built for user-directed automation. Read-only commands are allowed by default, while high-risk actions return `requiresConfirmation: true` instead of executing unless the request includes `confirm: true` or the CLI uses `--confirm`.
+
+Risk levels:
+
+- `low`: observe, snapshot, extract, assert, read, query, screenshot, list tabs, activate a tab, wait, scroll.
+- `medium`: chain, navigate, open tabs, reload, act, semantic search, search-extract, click, type, fill, press keys, select options.
+- `high`: close tabs, execute page JavaScript, submit-like actions, and actions whose visible text or labels look like delete, pay, publish, login, authorize, follow/unfollow, report, or similar account-changing operations.
+
+Use `--risk` to inspect the risk classification without executing the command.
+
+## Privacy Model
+
+The bridge runs locally and listens on `127.0.0.1`. Browser actions happen through the loaded Edge extension and the Native Messaging host registered for that extension.
+
+The extension is intended for user-directed automation: inspect the requested tabs, operate the requested pages, and leave account verification, payment confirmation, CAPTCHA, and other sensitive checkpoints under direct user control.
+
+## Uninstall
+
+Remove the Native Messaging registration:
 
 ```powershell
 npm.cmd run native:uninstall
 ```
 
-这只删除 Edge Native Messaging 注册项，不会删除项目文件。
-
-## 备用手动模式
-
-如果 Native Messaging 暂时不可用，还可以手动启动旧桥接服务：
-
-```powershell
-npm.cmd run bridge
-```
-
-旧模式需要控制台页用 HTTP 轮询；当前扩展默认使用 Native Messaging。
-
-## 限制
-
-- Edge 内部页面，例如 `edge://extensions`，浏览器不允许普通扩展注入脚本。
-- 某些商店、银行或高安全页面可能限制内容脚本或页面操作。
-- `screenshot` 只能截取当前窗口可见区域；如果指定了非活动标签页，扩展会先激活它再截图。
-- 为了让本机 host 保持运行，需要保持 `Codex Edge Bridge` 控制台页打开。
+Then remove the unpacked extension from `edge://extensions`.

@@ -1,0 +1,41 @@
+{
+  "name": "page-brief",
+  "title": "读取当前页面摘要",
+  "description": "抽取当前标签页的标题、网址、正文、链接和搜索结果，适合先了解页面里有什么。",
+  "inputs": {
+    "mode": {
+      "label": "抽取模式",
+      "default": "auto"
+    },
+    "limit": {
+      "label": "条目数量",
+      "default": 20
+    },
+    "maxChars": {
+      "label": "正文上限",
+      "default": 1800
+    }
+  },
+  "steps": [
+    {
+      "name": "extract",
+      "label": "抽取当前页面",
+      "saveAs": "page",
+      "args": {
+        "mode": "{{inputs.mode}}",
+        "limit": "{{inputs.limit}}",
+        "maxChars": "{{inputs.maxChars}}"
+      }
+    }
+  ],
+  "output": {
+    "title": "{{vars.page.title}}",
+    "url": "{{vars.page.url}}",
+    "articleTitle": "{{vars.page.article.title}}",
+    "author": "{{vars.page.article.author}}",
+    "text": "{{vars.page.summary.text}}",
+    "linkCount": "{{vars.page.links.length}}",
+    "cardCount": "{{vars.page.cards.length}}",
+    "resultCount": "{{vars.page.results.length}}"
+  }
+}

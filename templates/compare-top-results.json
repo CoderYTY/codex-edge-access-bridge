@@ -1,0 +1,111 @@
+{
+  "name": "compare-top-results",
+  "title": "搜索并对比前两个结果",
+  "description": "搜索关键词，分别打开前两个结果并抽取正文，适合让 AI 做候选内容对比。",
+  "timeoutMs": 120000,
+  "inputs": {
+    "query": {
+      "label": "搜索词",
+      "required": true
+    },
+    "target": {
+      "label": "搜索框描述",
+      "default": "搜索框"
+    },
+    "limit": {
+      "label": "结果数量",
+      "default": 6
+    },
+    "waitMs": {
+      "label": "等待时间",
+      "default": 15000
+    },
+    "maxChars": {
+      "label": "每页正文上限",
+      "default": 3000
+    }
+  },
+  "steps": [
+    {
+      "name": "searchExtract",
+      "label": "搜索并抽取结果",
+      "saveAs": "search",
+      "retry": {
+        "attempts": 2,
+        "delayMs": 1000
+      },
+      "args": {
+        "target": "{{inputs.target}}",
+        "searchText": "{{inputs.query}}",
+        "limit": "{{inputs.limit}}",
+        "waitMs": "{{inputs.waitMs}}",
+        "mode": "search"
+      }
+    },
+    {
+      "name": "assert",
+      "label": "确认至少有两个搜索结果",
+      "saveAs": "resultCheck",
+      "args": {
+        "value": "{{vars.search.extraction.results.length}}",
+        "gte": 2
+      }
+    },
+    {
+      "name": "newTab",
+      "label": "打开第一个结果链接",
+      "saveAs": "firstTab",
+      "args": {
+        "url": "{{vars.search.extraction.results.0.href}}",
+        "wait": true,
+        "waitUntil": "stable",
+        "waitMs": "{{inputs.waitMs}}"
+      }
+    },
+    {
+      "name": "extract",
+      "label": "抽取第一个结果页面",
+      "saveAs": "firstPage",
+      "args": {
+        "mode": "article",
+        "maxChars": "{{inputs.maxChars}}"
+      }
+    },
+    {
+      "name": "newTab",
+      "label": "打开第二个结果链接",
+      "saveAs": "secondTab",
+      "args": {
+        "url": "{{vars.search.extraction.results.1.href}}",
+        "wait": true,
+        "waitUntil": "stable",
+        "waitMs": "{{inputs.waitMs}}"
+      }
+    },
+    {
+      "name": "extract",
+      "label": "抽取第二个结果页面",
+      "saveAs": "secondPage",
+      "args": {
+        "mode": "article",
+        "maxChars": "{{inputs.maxChars}}"
+      }
+    }
+  ],
+  "output": {
+    "query": "{{inputs.query}}",
+    "resultCount": "{{vars.search.extraction.results.length}}",
+    "first": {
+      "title": "{{vars.firstPage.article.title}}",
+      "author": "{{vars.firstPage.article.author}}",
+      "url": "{{vars.firstPage.url}}",
+      "text": "{{vars.firstPage.article.text.value}}"
+    },
+    "second": {
+      "title": "{{vars.secondPage.article.title}}",
+      "author": "{{vars.secondPage.article.author}}",
+      "url": "{{vars.secondPage.url}}",
+      "text": "{{vars.secondPage.article.text.value}}"
+    }
+  }
+}
